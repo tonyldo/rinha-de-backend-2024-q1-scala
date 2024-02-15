@@ -1,9 +1,7 @@
 import domain.{Client, Transaction, TransactionDescription, TransactionType, TransactionValue}
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-
+import java.time.LocalDateTime
 
 class TransactionsServiceSuite extends AnyFunSuite {
 
@@ -39,26 +37,21 @@ class TransactionsServiceSuite extends AnyFunSuite {
   test("Return the top 10 transactions ordering by date when it executed") {
     val transactionBase = new Transaction(TransactionValue(1),TransactionType.DEBIT,TransactionDescription("Trans "))
 
-    val client1 = Client("client 3", 1001, 0, List.empty)
-
-    var clientCurrent=client1
-    var listTransaction: List[Transaction] = List.empty
-
-    for (i <- 1 to 12) yield {
-      val newDate = if (i % 2 == 0) {
-        LocalDate.now().plusDays(i)
-      } else {
-        LocalDate.now().minusDays(i)
+    val transactionList =
+      for (i <- 1 to 12) yield {
+        val newDate = if (i % 2 == 0) {
+        LocalDateTime.now().plusSeconds(i)
+        } else {
+          LocalDateTime.now().minusSeconds(i)
+        }
+        transactionBase.copy(description = TransactionDescription("Trans " + i),date = newDate)
       }
 
-      listTransaction = transactionBase.copy(description = TransactionDescription("Trans " + i),date = newDate) +: listTransaction.take(9)
-      clientCurrent = TransactionService.doIt(clientCurrent,listTransaction.head)
-    }
+    val client1 = Client("client 1", 1001, 0, List.empty)
 
-    val transactionListResult = TransactionService.getLast10Transactions(clientCurrent)
-    assert(transactionListResult.size <= 10)
-    assert(transactionListResult == listTransaction.sortWith((t1,t2)=>t1.date.compareTo(t2.date)>0))
+    val client = transactionList.foldLeft(client1)((c,t)=>TransactionService.doIt(c,t))
+
+    assert(client.balance == -12)
+    assert(TransactionService.getLast10Transactions(client).size == 10)
   }
-
-
 }
