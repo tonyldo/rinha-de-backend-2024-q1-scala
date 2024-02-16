@@ -1,5 +1,6 @@
+package domain
+
 import domain.TransactionType.{CREDIT, DEBIT}
-import domain.{Client, Transaction, TransactionLimitException}
 
 object TransactionService {
   def doIt(client: Client, transaction:Transaction):Client ={
@@ -8,7 +9,7 @@ object TransactionService {
     transaction.transactionType match {
        case DEBIT => if (isValidDebit(client,transaction)) client.copy(balance = currentBalance-transaction.money.value, transactions = transaction +: currentTransactions.take(9)) else throw TransactionLimitException("Limit exceeded!")
        case CREDIT => client.copy(balance = currentBalance+transaction.money.value, transactions = transaction +: currentTransactions.take(9))
-     }
+    }
   }
 
   def isValidDebit(client: Client, transaction: Transaction):Boolean = {

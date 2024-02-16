@@ -1,3 +1,3 @@
 package domain
 
-case class Client(name: String, limit: Int, balance: Int, transactions: List[Transaction])
+case class Client(id: Int, limit: Int, balance: Int, transactions: List[Transaction])

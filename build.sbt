@@ -7,4 +7,10 @@ lazy val root = (project in file("."))
     name := "rinha-de-backend-2024-q1-scala"
   )
 
+libraryDependencies += "com.typesafe.slick" %% "slick" % "3.4.1"
 libraryDependencies += "org.scalatest" %% "scalatest-funsuite" % "3.2.18" % "test"
+libraryDependencies += "com.h2database" % "h2" % "2.2.224" % "test"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.7" % Runtime
+
+
+Test / parallelExecution := false

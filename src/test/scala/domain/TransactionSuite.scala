@@ -1,4 +1,5 @@
-import domain.{TransactionDescription, TransactionDescriptionException, TransactionType, TransactionTypeException, TransactionValue, TransactionValueException}
+package domain
+
 import org.scalatest.funsuite.AnyFunSuite
 
 
