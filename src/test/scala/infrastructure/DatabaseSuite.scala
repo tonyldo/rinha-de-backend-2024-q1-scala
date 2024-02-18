@@ -1,15 +1,17 @@
 package infrastructure
 
 import com.typesafe.config.ConfigFactory
-import infrastructure.adapters.dao.Clients
-import infrastructure.adapters.dao.entities.ClientEntity
+import infrastructure.adapters.dao.{Clients, Transactions}
+import infrastructure.adapters.dao.entities.TransactionEntity
+import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException
 import org.scalatest.funsuite.AnyFunSuite
 import slick.jdbc.H2Profile.api._
 
 import java.io.File
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
+import java.sql.SQLIntegrityConstraintViolationException
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 
 class DatabaseSuite extends AnyFunSuite{
@@ -19,13 +21,42 @@ class DatabaseSuite extends AnyFunSuite{
     val db = Database.forConfig("h2mem")
     val clientsTable = TableQuery[Clients]
 
-    val result: Future[Seq[ClientEntity]] = db.run(clientsTable.filter(_.id === 1).result)
+    assert(Await.result(db.run(clientsTable.filter(_.id === 1).result), Duration(200, TimeUnit.MILLISECONDS)).head.id==1)
+  }
 
-    val futureResult = result.map { s =>
-      if (s.nonEmpty) println(s.head)
-      else fail("Client repository test fail")
-    }
+  test("Test insert transactions."){
+    ConfigFactory.parseFile(new File("src/test/resources/application.conf"))
+    val db = Database.forConfig("h2mem")
+    val transactionTable = TableQuery[Transactions]
 
-    Await.result(futureResult, 1.seconds)
+    val insertTransactionQuery = transactionTable += new TransactionEntity(None,1,2000,'d',"test1")
+
+    val insertTransactionQuery2 = transactionTable += new TransactionEntity(None,1,3000,'d',"test2")
+
+    assert(Await.result(db.run((insertTransactionQuery andThen insertTransactionQuery2).transactionally), Duration(200, TimeUnit.MILLISECONDS)).leftSide==1)
+
+    assert(Await.result(db.run(transactionTable.length.result), Duration(200, TimeUnit.MILLISECONDS))==2)
+
+    val insertTransactionQuery3 = transactionTable += new TransactionEntity(None,1,4000,'d',"test3")
+
+    val insertTransactionQuery4 = transactionTable += new TransactionEntity(None,1,5000,'e',"test4")
+
+    assertThrows[SQLIntegrityConstraintViolationException](Await.result(db.run((insertTransactionQuery3 andThen insertTransactionQuery4).transactionally), Duration(200, TimeUnit.MILLISECONDS)))
+
+    assert(Await.result(db.run(transactionTable.length.result), Duration(200, TimeUnit.MILLISECONDS))==2)
+  }
+
+  test("Test Clients updates"){
+    ConfigFactory.parseFile(new File("src/test/resources/application.conf"))
+    val db = Database.forConfig("h2mem")
+    val clientsTable = TableQuery[Clients]
+
+    val updateClientBalance = clientsTable.filter(_.id === 3).map(_.balance).update(111111)
+
+    val query = clientsTable.filter(_.id === 3).result
+
+    val dbIOActionResult = updateClientBalance andThen query
+
+    assert(Await.result(db.run(dbIOActionResult),Duration(200, TimeUnit.MILLISECONDS)).head.balance==111111)
   }
 }

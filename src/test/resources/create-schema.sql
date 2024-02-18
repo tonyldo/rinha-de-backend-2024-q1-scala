@@ -2,12 +2,12 @@
 
 CREATE TABLE IF NOT EXISTS CLIENTS (ID INT PRIMARY KEY,"LIMIT" INT,BALANCE INT);
 
-CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INT PRIMARY KEY AUTO_INCREMENT,
                            CLIENT_ID INT,
                            MONEY INT,
-                           type CHAR(1) CHECK (type IN ('d', 'c')),
+                           TRANSACTION_TYPE CHAR(1) CHECK (TRANSACTION_TYPE IN ('d', 'c')),
                            DESCRIPTION VARCHAR(10),
-                           CREATEDON DATE,
+                           CREATION TIMESTAMP,
                            FOREIGN KEY (CLIENT_ID) REFERENCES CLIENTS(ID));
 
 MERGE INTO CLIENTS
