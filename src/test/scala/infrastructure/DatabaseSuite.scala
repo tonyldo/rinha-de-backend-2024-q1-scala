@@ -3,15 +3,16 @@ package infrastructure
 import com.typesafe.config.ConfigFactory
 import infrastructure.adapters.dao.{Clients, Transactions}
 import infrastructure.adapters.dao.entities.TransactionEntity
-import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException
 import org.scalatest.funsuite.AnyFunSuite
 import slick.jdbc.H2Profile.api._
 
 import java.io.File
 import java.sql.SQLIntegrityConstraintViolationException
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.util.Random
 
 
 class DatabaseSuite extends AnyFunSuite{
@@ -58,5 +59,19 @@ class DatabaseSuite extends AnyFunSuite{
     val dbIOActionResult = updateClientBalance andThen query
 
     assert(Await.result(db.run(dbIOActionResult),Duration(200, TimeUnit.MILLISECONDS)).head.balance==111111)
+  }
+
+  test("Test get the 10 first transactions of a client"){
+    ConfigFactory.parseFile(new File("src/test/resources/application.conf"))
+    val db = Database.forConfig("h2mem")
+    val transactions = TableQuery[Transactions]
+
+    for (i <- 1 to 100) yield {
+      Await.result(db.run(transactions += new TransactionEntity(None, Random.between(1,5), 1000*i, if (i%2==0) 'd' else 'c',"trans " + i)),Duration(200, TimeUnit.MILLISECONDS))
+    }
+
+    val result = Await.result(db.run(transactions.filter(_.clientId === Random.between(1,5)).sorted(t=>t.creation.desc).take(10).result),Duration(200, TimeUnit.MILLISECONDS))
+
+    assert( result.foldLeft((LocalDateTime.now().compareTo(result.head.creation)>=0,result.head.creation))((a,t)=>(a._1 && a._2.compareTo(t.creation)>=0,t.creation))._1 )
   }
 }

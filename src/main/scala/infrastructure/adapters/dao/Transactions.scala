@@ -12,6 +12,6 @@ case class Transactions(tag: Tag) extends Table[TransactionEntity](tag, "TRANSAC
   def money = column[Int]("MONEY")
   def transactionType = column[Char]("TRANSACTION_TYPE")
   def description = column[String]("DESCRIPTION")
-  private def creation = column[LocalDateTime]("CREATION")
+  def creation = column[LocalDateTime]("CREATION")
   override def * = (id.?, clientId, money, transactionType, description, creation) <> (TransactionEntity.tupled, TransactionEntity.unapply)
 }
