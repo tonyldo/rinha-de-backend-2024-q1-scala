@@ -1,5 +1,7 @@
 package domain
 
+import domain.TransactionType.{CREDIT, DEBIT}
+
 import java.time.LocalDateTime
 
 case class Transaction(money: TransactionValue, transactionType: TransactionType, description: TransactionDescription, date: LocalDateTime) {
@@ -8,4 +10,10 @@ case class Transaction(money: TransactionValue, transactionType: TransactionType
     this(money, transactionType, description, LocalDateTime.now())
   }
 
+  def transactionTypeToChar: Char = this.transactionType match {
+    case DEBIT => 'd'
+    case CREDIT => 'c'
+  }
+
 }
+

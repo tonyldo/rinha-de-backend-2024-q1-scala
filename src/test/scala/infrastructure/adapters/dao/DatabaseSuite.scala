@@ -1,7 +1,6 @@
-package infrastructure
+package infrastructure.adapters.dao
 
 import com.typesafe.config.ConfigFactory
-import infrastructure.adapters.dao.{Clients, Transactions}
 import infrastructure.adapters.dao.entities.TransactionEntity
 import org.scalatest.funsuite.AnyFunSuite
 import slick.jdbc.H2Profile.api._

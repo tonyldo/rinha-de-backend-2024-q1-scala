@@ -1,7 +1,10 @@
 package infrastructure.adapters.dao
 
-import infrastructure.adapters.dao.entities.TransactionEntity
+import domain.Transaction
+import infrastructure.adapters.dao.entities.{TransactionEntity, TransactionEntityUtil}
+import slick.dbio.Effect
 import slick.jdbc.H2Profile.api._
+import slick.sql.FixedSqlAction
 
 import java.time.LocalDateTime
 
@@ -14,4 +17,12 @@ case class Transactions(tag: Tag) extends Table[TransactionEntity](tag, "TRANSAC
   def description = column[String]("DESCRIPTION")
   def creation = column[LocalDateTime]("CREATION")
   override def * = (id.?, clientId, money, transactionType, description, creation) <> (TransactionEntity.tupled, TransactionEntity.unapply)
+}
+
+object TransactionsDAO {
+  def getTransactionsDAO = TableQuery[Transactions]
+
+  def insert(clientId: Int, transaction: Transaction, transactionTable: TableQuery[Transactions]): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    transactionTable += TransactionEntityUtil.fromDomain(transaction, clientId)
+  }
 }
