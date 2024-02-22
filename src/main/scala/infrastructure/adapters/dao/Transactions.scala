@@ -7,6 +7,7 @@ import slick.jdbc.H2Profile.api._
 import slick.sql.FixedSqlAction
 
 import java.time.LocalDateTime
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Transactions(tag: Tag) extends Table[TransactionEntity](tag, "TRANSACTIONS") {
   def id = column[Int]("ID", O.PrimaryKey, O.AutoInc)
@@ -20,9 +21,19 @@ case class Transactions(tag: Tag) extends Table[TransactionEntity](tag, "TRANSAC
 }
 
 object TransactionsDAO {
-  def getTransactionsDAO = TableQuery[Transactions]
 
-  def insert(clientId: Int, transaction: Transaction, transactionTable: TableQuery[Transactions]): FixedSqlAction[Int, NoStream, Effect.Write] = {
+  val transactionTable = TableQuery[Transactions]
+
+  def insert(clientId: Int, transaction: Transaction): FixedSqlAction[Int, NoStream, Effect.Write] = {
     transactionTable += TransactionEntityUtil.fromDomain(transaction, clientId)
+  }
+
+  def find10Lasts(clientId: Int): DBIOAction[Seq[Transaction], NoStream, Effect.Read] = {
+  transactionTable.filter(_.id === clientId)
+      .take(10)
+      .sorted(_.creation)
+      .result
+      .map(s=>s.
+        map(e=>e.toDomain))
   }
 }

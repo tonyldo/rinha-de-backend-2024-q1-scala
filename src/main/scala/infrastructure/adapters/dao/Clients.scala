@@ -1,8 +1,10 @@
 package infrastructure.adapters.dao
 
-import domain.{ClientNotFoundException, Transaction}
+import domain.{Client, ClientNotFoundException}
 import infrastructure.adapters.dao.entities.ClientEntity
+import slick.dbio.Effect
 import slick.jdbc.H2Profile.api._
+import slick.sql.FixedSqlAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -15,12 +17,19 @@ case class Clients(tag: Tag) extends Table[ClientEntity](tag, "CLIENTS") {
 }
 
 object ClientsDAO {
-  def getClientsDAO = TableQuery[Clients]
+  val clientsTable = TableQuery[Clients]
 
-  def findAndUpdate(clientId: Int, transaction: Transaction, clientsTable: TableQuery[Clients]): DBIOAction[Int, NoStream, Effect.Read with Effect.Write] = {
-    clientsTable.filter(_.id === clientId).take(1).result.flatMap(c => {
-      val clientFind = if (c.nonEmpty) c.head.toDomain else throw ClientNotFoundException("Not found client: " + clientId)
-      clientsTable.filter(_.id === clientFind.id).map(_.balance).update(clientFind.doIt(transaction))
-    })
+  def update(clientId: Int, newBalance:Int): FixedSqlAction[Int, NoStream, Effect.Write] = {
+      clientsTable
+        .filter(_.id === clientId)
+        .map(_.balance)
+        .update(newBalance)
+  }
+
+  def findById(clientId: Int): DBIOAction[Client, NoStream, Effect.Read] = {
+    clientsTable
+      .filter(_.id === clientId)
+      .result
+      .map(s=> if (s.nonEmpty) s.head.toDomain else throw ClientNotFoundException("Not found client: " + clientId))
   }
 }

@@ -1,25 +1,31 @@
 package services
 
-import domain.Transaction
+import domain.{BalanceReport, Client, Transaction}
 import infrastructure.adapters.dao.{ClientsDAO, TransactionsDAO}
 import slick.jdbc.H2Profile.api._
 import slick.jdbc.TransactionIsolation
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object TransactionService {
-  def insert(clientId: Int,transaction:Transaction, db: Database): Future[Int] = {
+  def insert(clientId: Int,transaction:Transaction, db:Database): Future[Client] = {
 
-    val clientsTable = ClientsDAO.getClientsDAO
-    val transactionTable = TransactionsDAO.getTransactionsDAO
+    val query = (for {
+      c:Client <- ClientsDAO.findById(clientId)
+      _ <- ClientsDAO.update(c.id,c.doIt(transaction))
+      _ <- TransactionsDAO.insert(c.id, transaction)
+    } yield (c.copy(balance = c.doIt(transaction)))).transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted)
 
-    val clientQuery = ClientsDAO.findAndUpdate(clientId, transaction, clientsTable)
+    db.run(query)
+  }
 
-    val insertTransactionQuery = TransactionsDAO.insert(clientId, transaction, transactionTable)
+  def balanceReport (clientId:Int, db: Database): Future[BalanceReport] = {
+    val findById = ClientsDAO.findById(clientId)
+    val queryTransactions = TransactionsDAO.find10Lasts(clientId)
+    val dbIO = findById.zip(queryTransactions).map(t=>BalanceReport.from(t))
 
-    val dbIO = clientQuery andThen insertTransactionQuery
-
-    db.run(dbIO.transactionally.withTransactionIsolation(TransactionIsolation.RepeatableRead))
+    db.run(dbIO.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
   }
 
 }

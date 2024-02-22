@@ -9,10 +9,9 @@ case class Client(id: Int, limit: Int, balance: Int) {
   }
 
   def doIt(transaction:Transaction):Int ={
-    val currentBalance = this.balance
     transaction.transactionType match {
-      case DEBIT => if (isValidDebit(transaction)) currentBalance-transaction.money.value else throw TransactionLimitException("Limit exceeded!")
-      case CREDIT => currentBalance+transaction.money.value
+      case DEBIT => if (isValidDebit(transaction)) this.balance-transaction.money.value else throw TransactionLimitException("Limit exceeded!")
+      case CREDIT => this.balance+transaction.money.value
     }
   }
 }
