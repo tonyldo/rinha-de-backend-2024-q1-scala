@@ -1,28 +1,30 @@
 package services
+import slick.jdbc.{JdbcProfile, TransactionIsolation}
 
-import domain.{BalanceReport, Client, Transaction}
-import infrastructure.adapters.dao.{ClientsDAO, TransactionsDAO}
-import slick.jdbc.H2Profile.api._
-import slick.jdbc.TransactionIsolation
-
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object TransactionService {
-  def insert(clientId: Int,transaction:Transaction, db:Database): Future[Client] = {
+case class TransactionService(profile: JdbcProfile) {
+
+  import domain.{BalanceReport, Client, Transaction}
+  import infrastructure.adapters.dao.{ClientsDAO, TransactionsDAO}
+  import profile.api._
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import slick.jdbc.JdbcBackend.Database
+
+  def insert(clientId: Int,transaction:Transaction,clientDao: ClientsDAO,transactionDao: TransactionsDAO, db:Database): Future[Client] = {
     val client = Client(clientId,None,None)
     val query = (for {
-      c:Client <- ClientsDAO.findById(client.id)
-      _ <- ClientsDAO.update(c.id,c.doIt(transaction))
-      _ <- TransactionsDAO.insert(c.id, transaction)
+      c:Client <- clientDao.findById(client.id)
+      _ <- clientDao.update(c.id,c.doIt(transaction))
+      _ <- transactionDao.insert(c.id, transaction)
     } yield (c.copy(balance = Some(c.doIt(transaction))))).transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted)
 
     db.run(query)
   }
 
-  def balanceReport (clientId:Int, db: Database): Future[BalanceReport] = {
-    val findById = ClientsDAO.findById(clientId)
-    val queryTransactions = TransactionsDAO.find10Lasts(clientId)
+  def balanceReport (clientId:Int,clientDao: ClientsDAO,transactionDao: TransactionsDAO, db: Database): Future[BalanceReport] = {
+    val findById = clientDao.findById(clientId)
+    val queryTransactions = transactionDao.find10Lasts(clientId)
     val dbIO = findById.zip(queryTransactions).map(t=>BalanceReport.from(t))
 
     db.run(dbIO.transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted))
