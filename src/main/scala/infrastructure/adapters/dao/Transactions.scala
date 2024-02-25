@@ -29,9 +29,9 @@ object TransactionsDAO {
   }
 
   def find10Lasts(clientId: Int): DBIOAction[Seq[Transaction], NoStream, Effect.Read] = {
-  transactionTable.filter(_.id === clientId)
+  transactionTable.filter(_.clientId === clientId)
       .take(10)
-      .sorted(_.creation)
+      .sorted(_.creation.desc)
       .result
       .map(s=>s.
         map(e=>e.toDomain))

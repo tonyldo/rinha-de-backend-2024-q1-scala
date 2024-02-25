@@ -10,12 +10,12 @@ import scala.concurrent.Future
 
 object TransactionService {
   def insert(clientId: Int,transaction:Transaction, db:Database): Future[Client] = {
-
+    val client = Client(clientId,None,None)
     val query = (for {
-      c:Client <- ClientsDAO.findById(clientId)
+      c:Client <- ClientsDAO.findById(client.id)
       _ <- ClientsDAO.update(c.id,c.doIt(transaction))
       _ <- TransactionsDAO.insert(c.id, transaction)
-    } yield (c.copy(balance = c.doIt(transaction)))).transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted)
+    } yield (c.copy(balance = Some(c.doIt(transaction))))).transactionally.withTransactionIsolation(TransactionIsolation.ReadCommitted)
 
     db.run(query)
   }

@@ -35,24 +35,24 @@ class TransactionSuite extends AnyFunSuite {
   }
 
   test("Verify debit transaction success") {
-    val client1 = Client(1, 1000, 0)
+    val client1 = Client(1, Some(1000), Some(0))
     val transaction1 = new Transaction(TransactionValue(10),TransactionType.DEBIT,TransactionDescription("Trans 1"))
 
-    assert(client1.doIt(transaction1) == client1.balance - transaction1.money.value)
+    assert(client1.doIt(transaction1) == client1.balance.get - transaction1.money.value)
   }
 
   test("Verify credit transaction success") {
-    val client1 = Client(1, 1000, 0)
+    val client1 = Client(1, Some(1000), Some(0))
     val transaction1 = new Transaction(TransactionValue(10),TransactionType.CREDIT,TransactionDescription("Trans 1"))
 
-    assert(client1.doIt(transaction1) == client1.balance + transaction1.money.value)
+    assert(client1.doIt(transaction1) == client1.balance.get + transaction1.money.value)
   }
 
   test("Verify debit transaction is valid") {
-    val client1 = Client(1, 1000, 0)
+    val client1 = Client(1, Some(1000), Some(0))
     val transaction1 = new Transaction(TransactionValue(1001),TransactionType.DEBIT,TransactionDescription("Trans 1"))
 
-    val client3 = Client(3, 1001, 0)
+    val client3 = Client(3, Some(1001), Some(0))
     val transaction3 = new Transaction(TransactionValue(1),TransactionType.DEBIT,TransactionDescription("Trans 3"))
 
     assert(!client1.isValidDebit(transaction1))
@@ -72,10 +72,10 @@ class TransactionSuite extends AnyFunSuite {
         transactionBase.copy(description = TransactionDescription("Trans " + i),date = newDate)
       }
 
-    val client1 = Client(1, 1001, 0)
+    val client1 = Client(1, Some(1001), Some(0))
 
-    val client = transactionList.foldLeft(client1)((c,t)=>c.copy(balance =c.doIt(t)))
+    val client = transactionList.foldLeft(client1)((c,t)=>c.copy(balance = Some(c.doIt(t))))
 
-    assert(client.balance == -12)
+    assert(client.balance.get == -12)
   }
 }

@@ -4,7 +4,7 @@ import domain.Client
 
 case class ClientEntity(id:Int, limit:Int, balance:Int){
   def toDomain: Client = {
-    Client(this.id,this.limit,this.balance)
+    Client(this.id,Some(this.limit),Some(this.balance))
   }
 }
 

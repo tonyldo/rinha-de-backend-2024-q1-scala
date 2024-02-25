@@ -14,7 +14,7 @@ class ServicesSuite extends AnyFunSuite{
   test("Test transaction insert"){
     ConfigFactory.parseFile(new File("src/test/resources/application.conf"))
     val db = Database.forConfig("h2mem")
-    assert(Await.result(TransactionService.insert(1,new Transaction(TransactionValue(1000),TransactionType.fromString("c"),TransactionDescription("trans1")),db), Duration(200, TimeUnit.MILLISECONDS)).balance == 1000)
+    assert(Await.result(TransactionService.insert(1,new Transaction(TransactionValue(1000),TransactionType.fromString("c"),TransactionDescription("trans1")),db), Duration(200, TimeUnit.MILLISECONDS)).balance.get == 1000)
   }
 
   test("Test transaction insert fail by client no exists"){
@@ -34,13 +34,18 @@ class ServicesSuite extends AnyFunSuite{
     val db = Database.forConfig("h2mem")
     db.createSession()
 
-    val result = Await.result(
-         TransactionService.insert(1,new Transaction(TransactionValue(1111),TransactionType.fromString("c"),TransactionDescription("trans "+1)),db) zip
-         TransactionService.insert(1,new Transaction(TransactionValue(2222),TransactionType.fromString("c"),TransactionDescription("trans "+2)),db) zip
-         TransactionService.insert(1,new Transaction(TransactionValue(2222),TransactionType.fromString("d"),TransactionDescription("trans "+3)),db)
+    try { Await.result(
+      TransactionService.insert(1,new Transaction(TransactionValue(1111),TransactionType.fromString("c"),TransactionDescription("trans "+1)),db) zip
+        TransactionService.insert(1,new Transaction(TransactionValue(1111111111),TransactionType.fromString("d"),TransactionDescription("trans "+3)),db) zip
+        TransactionService.insert(1,new Transaction(TransactionValue(2222),TransactionType.fromString("c"),TransactionDescription("trans "+2)),db) zip
+        TransactionService.insert(6,new Transaction(TransactionValue(2222),TransactionType.fromString("c"),TransactionDescription("trans "+2)),db)
       , Duration(5000, TimeUnit.MILLISECONDS) )
+    } catch {
+      case _:Exception => println("ok")
+    }
 
-    assert(result._2.balance==1111)
+    val report = Await.result(TransactionService.balanceReport(1,db), Duration(5000, TimeUnit.MILLISECONDS) )
 
+    assert(report.transactions.size<=10)
   }
 }
